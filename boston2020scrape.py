@@ -45,3 +45,7 @@ pg_data_df = pg_data_df.drop(columns=['Rk'], axis=1)
 
 print(pg_data_df)
 
+jsonResult = pg_data_df.to_json(orient='index');
+
+print(jsonResult)
+
