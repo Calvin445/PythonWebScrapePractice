@@ -8,6 +8,9 @@ import numpy as np
 alphabet = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z']
 
 def scrapePlayersByName(letter):
+  if letter == 'x':
+    return pd.DataFrame()
+
   url = 'https://www.basketball-reference.com/players/' + letter + '/'
   response = requests.get(url)
 
@@ -18,7 +21,6 @@ def scrapePlayersByName(letter):
   soup.prettify()
 
   soup = soup.find_all("table", id="players")
-
   table_head = soup[0].find("thead")
   table_head = table_head.find_all("tr")
   headers = pd.DataFrame(table_head)
@@ -44,9 +46,19 @@ def scrapePlayersByName(letter):
   data.columns = header_list
   data = data.drop(columns=["Pos", "Ht", "Wt", "Colleges"], axis=1)
 
-  data = data.loc[data['From'] == "2020"]
+  data = data.loc[data['To'] == "2020"]
 
   return data
 
+all_rookies = pd.DataFrame()
 
-print(scrapePlayersByName('a'))
+# BBallRef's data is organized by last name initial
+# Must call each page and scape 
+for letter in alphabet:
+  print(letter)
+  if letter == 'a':
+    all_rookies = scrapePlayersByName('a')
+  else:
+    all_rookies = all_rookies.append(scrapePlayersByName(letter))
+
+print(all_rookies)
