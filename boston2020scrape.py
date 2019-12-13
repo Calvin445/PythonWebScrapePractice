@@ -36,10 +36,14 @@ per_game_data = per_game[0].find("tbody")
 per_game_data = per_game_data.find_all("tr")
 pg_data_df = pd.DataFrame(per_game_data)
 
+bball_ref_player_ids = {}
+
 for col in pg_data_df.columns:
   for row in range(len(pg_data_df.index)):
+    if col == 1:
+      bball_ref_player_ids[pg_data_df.at[row, col].text] = pg_data_df.at[row, col]['data-append-csv']
     pg_data_df.at[row, col] = pg_data_df.at[row, col].text
-
+    
 pg_data_df.columns = header_list
 pg_data_df = pg_data_df.drop(columns=['Rk'], axis=1)
 
@@ -49,3 +53,19 @@ jsonResult = pg_data_df.to_json(orient='index');
 
 print(jsonResult)
 
+print(bball_ref_player_ids)
+
+
+def getPlayerGameLogs(player_id):
+  player_str = str(player_id)
+  print('https://www.basketball-reference.com/players/' + player_str[(player_str.index(' ') + 1)] + '/' + str(bball_ref_player_ids[player_id]) + '/gamelog/2020')
+  url = 'https://www.basketball-reference.com/players/' + player_str[(player_str.index(' ') + 1)] + '/' + str(bball_ref_player_ids[player_id]) + '/gamelog/2020'
+  #response = requests.get(url)
+
+  #cleanedSource = response.text.replace("<!--", "")
+  #cleanedSource = cleanedSource.replace("-->", "")
+
+  #soup = BeautifulSoup(cleanedSource, "html.parser")  
+
+for player in bball_ref_player_ids:
+  getPlayerGameLogs(player)
