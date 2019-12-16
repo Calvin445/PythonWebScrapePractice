@@ -1,0 +1,123 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+import numpy as np
+import time
+import pandas as pd
+
+
+# Path to my local chromedriver
+driver = webdriver.Chrome("/anaconda3/lib/python3.7/site-packages/chromedriver_install-1.0.3.dist-info/chromedriver")
+
+wait = WebDriverWait(driver, 15, poll_frequency=2)
+driver.get('https://stats.nba.com/schedule/#!?PD=N&Month=3&TeamID=1610612738')
+
+element = wait.until(
+    EC.presence_of_all_elements_located((By.CLASS_NAME, 'schedule-game'))
+)
+
+# Getting all schedule games
+schedule = driver.find_elements_by_class_name('schedule-game')
+
+
+# List of game IDs
+game_ids = []
+
+# Getting all game IDs
+for element in schedule:
+    game_id = element.find_element_by_tag_name('article')
+    game_id = game_id.get_attribute('id')[5:]
+    game_ids.append(game_id)
+
+ids_df = pd.DataFrame(game_ids)
+
+print(game_ids)
+print(ids_df)
+
+
+def scrapePlayByPlay(game_id): 
+    # Path to my local chromedriver
+    driver = webdriver.Chrome("/anaconda3/lib/python3.7/site-packages/chromedriver_install-1.0.3.dist-info/chromedriver")
+
+    wait = WebDriverWait(driver, 15, poll_frequency=2)
+    driver.get('https://stats.nba.com/game/' + str(game_id) + '/playbyplay/')
+
+    element = wait.until(
+        EC.presence_of_all_elements_located((By.CLASS_NAME, 'boxscore-pbp__inner'))
+    )
+
+    play_by_play = driver.find_element_by_class_name('boxscore-pbp__inner')
+    
+    play_by_play = play_by_play.find_element_by_tag_name('tbody')
+    play_by_play = play_by_play.find_elements(By.XPATH, "//*[contains(@id,'play')]")
+    print(play_by_play)
+    return play_by_play
+
+oneGame = game_ids[0]
+print(oneGame)
+
+plays = []
+current_quarter = ""
+
+result = scrapePlayByPlay(oneGame)
+for item in result: 
+    play = []
+    print(item.get_attribute('id'))
+    
+    try:
+        htm_play = item.find_element_by_class_name('htm')
+        htm_play = htm_play.find_element_by_tag_name('a')
+        play.append(htm_play.text)
+    except:
+        play.append(np.NaN)
+    try:
+        vtm_play = item.find_element_by_class_name('vtm')
+        vtm_play = vtm_play.find_element_by_tag_name('a')
+        play.append(vtm_play.text)
+    except:
+        play.append(np.NaN)
+    
+    try:
+        quarter = item.find_element_by_class_name('start-period')
+        play.append(quarter.text[-2:])
+        current_quarter = quarter.text[-2:]
+    except:
+        play.append(current_quarter)
+    try:
+        time = item.find_element_by_class_name('time')
+        play.append(time.text)
+    except:    
+        play.append(np.NaN)
+    try:
+        score = item.find_element_by_class_name('score')
+        if score.text == "":
+            play.append(np.NaN)  
+        else:
+            play.append(score.text)
+    except:    
+        play.append(np.NaN)
+
+    plays.append(play)
+
+print(plays)
+
+
+
+plays_df = pd.DataFrame(plays)
+
+plays_df.columns = ['home_play', 'away_play', 'quarter', 'time', 'score']
+
+col = ['quarter', 'score']
+
+plays_df.loc[:,col] = plays_df.loc[:,col].ffill()
+
+with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+    print(plays_df)
+
+jsonResult = plays_df.to_json(orient='index')
+
+print(jsonResult)
+
+print(jsonResult[484])
